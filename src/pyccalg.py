@@ -84,16 +84,18 @@ def _read_params():
     algorithm = 'charikar'
     edge_addition_prob = -1
     calc_ari_nmi = False
+    skip_cluster_output = False
     debug_mode = False
     short_params = 'd:r:s:a:m:'
-    long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug', 'calc_ari_nmi']
+    long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug', 'calc_ari_nmi',
+                   'skip_cluster_output']
     try:
         arguments, values = getopt.getopt(sys.argv[1:], short_params, long_params)
     except getopt.error as err:
         print(
             'ologncc.py -d <dataset_file> [-r <rnd_edge_weight_LB,rnd_edge_weight_UB>]' +
             ' [-a <edge_addition_probability>] [-s <solver>] [-m <algorithm>]' +
-            ' [--calc_ari_nmi] [--debug]')
+            ' [--calc_ari_nmi] [--skip_cluster_output] [--debug]')
         sys.exit(2)
     for arg, value in arguments:
         if arg in ('-d', '--dataset'):
@@ -108,9 +110,12 @@ def _read_params():
             algorithm = value.lower()
         elif arg in ('--calc_ari_nmi'):
             calc_ari_nmi = True
+        elif arg in ('--skip_cluster_output'):
+            skip_cluster_output = True
         elif arg in ('--debug'):
             debug_mode = True
-    return (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi, debug_mode)
+    return (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi,
+            skip_cluster_output, debug_mode)
 
 
 def _map_cluster(cluster, id2vertex):
@@ -701,7 +706,7 @@ def get_ari_nmi_score(dataset_file, clustering, id2vertex):
 if __name__ == '__main__':
     # read parameters
     (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi,
-     debug_mode) = _read_params()
+     skip_cluster_output, debug_mode) = _read_params()
 
     # load dataset
     print(separator)
@@ -758,7 +763,8 @@ if __name__ == '__main__':
     c = 1
     for cluster in kc_clustering:
         mapped_cluster = _map_cluster(cluster, id2vertex)
-        print('Cluster ' + str(c) + ': ' + str(sorted(mapped_cluster)))
+        if not skip_cluster_output:
+            print('Cluster ' + str(c) + ': ' + str(sorted(mapped_cluster)))
         c += 1
 
     if calc_ari_nmi:
