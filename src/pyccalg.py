@@ -90,7 +90,7 @@ def _read_params():
     debug_mode = False
     n_debug = 500
     short_params = 'd:r:s:a:m:'
-    long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug', 'calc_ari_nmi',
+    long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug', 'n_debug=', 'calc_ari_nmi',
                    'skip_cluster_output']
     try:
         arguments, values = getopt.getopt(sys.argv[1:], short_params, long_params)
