@@ -13,7 +13,7 @@ eps = 0.0000000001
 def _running_time_ms(start):
 	return int(round((time.time()-start)*1000))
 
-def _load(dataset_path,random_edgeweight_generation,edge_addition_prob):
+def _load(dataset_path,random_edgeweight_generation,edge_addition_prob,debug_mode):
 	with open(dataset_path) as f:
 		tot_min = 0
 		id2vertex = {}
@@ -21,7 +21,10 @@ def _load(dataset_path,random_edgeweight_generation,edge_addition_prob):
 		edges = []
 		graph = {}
 		vertex_id = 0
-		for line in f.readlines()[1:]:
+		for i_line,line in enumerate(f.readlines()[1:]):
+			if debug_mode:
+				if i_line == 500:
+					break
 			tokens = line.split()
 			u = int(tokens[0])
 			v = int(tokens[1])
@@ -78,8 +81,9 @@ def _read_params():
 	solver = 'scipy'
 	algorithm = 'charikar'
 	edge_addition_prob = -1
+	debug_mode = False
 	short_params = 'd:r:s:a:m:'
-	long_params = ['dataset=','random=','solver=','addedges=','method=']
+	long_params = ['dataset=','random=','solver=','addedges=','method=', 'debug=']
 	try:
 		arguments, values = getopt.getopt(sys.argv[1:], short_params, long_params)
 	except getopt.error as err:
@@ -96,7 +100,9 @@ def _read_params():
 			edge_addition_prob = float(value)
 		elif arg in ('-m', '--method'):
 			algorithm = value.lower()
-	return (dataset_file,random_edgeweight_generation,edge_addition_prob,solver,algorithm)
+		elif arg in ('--debug'):
+			debug_mode = True
+	return (dataset_file,random_edgeweight_generation,edge_addition_prob,solver,algorithm,debug_mode)
 
 def _map_cluster(cluster,id2vertex):
 	return {id2vertex[u] for u in cluster}
@@ -650,13 +656,14 @@ def get_ari_nmi_score(dataset_file, clustering, id2vertex):
 
 if __name__ == '__main__':
 	#read parameters
-	(dataset_file,random_edgeweight_generation,edge_addition_prob,solver,algorithm) = _read_params()
+	(dataset_file,random_edgeweight_generation,edge_addition_prob,solver,algorithm,debug_mode) = _read_params()
 
 	#load dataset
 	print(separator)
 	print('Loading dataset \'%s\'...' %(dataset_file))
 	start = time.time()
-	(id2vertex,vertex2id,edges,graph,tot_min) = _load(dataset_file,random_edgeweight_generation,edge_addition_prob)
+	(id2vertex, vertex2id, edges, graph, tot_min) = _load(dataset_file, random_edgeweight_generation,
+														  edge_addition_prob, debug_mode)
 	runtime = _running_time_ms(start)
 	n = len(id2vertex)
 	m = len(edges)
