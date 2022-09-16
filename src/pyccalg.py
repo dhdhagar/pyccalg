@@ -83,14 +83,17 @@ def _read_params():
     solver = 'scipy'
     algorithm = 'charikar'
     edge_addition_prob = -1
+    calc_ari_nmi = False
     debug_mode = False
     short_params = 'd:r:s:a:m:'
-    long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug=']
+    long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug', 'calc_ari_nmi']
     try:
         arguments, values = getopt.getopt(sys.argv[1:], short_params, long_params)
     except getopt.error as err:
         print(
-            'ologncc.py -d <dataset_file> [-r <rnd_edge_weight_LB,rnd_edge_weight_UB>] [-a <edge_addition_probability>] [-s <solver>] [-m <algorithm>]')
+            'ologncc.py -d <dataset_file> [-r <rnd_edge_weight_LB,rnd_edge_weight_UB>]' +
+            ' [-a <edge_addition_probability>] [-s <solver>] [-m <algorithm>]' +
+            ' [--calc_ari_nmi] [--debug]')
         sys.exit(2)
     for arg, value in arguments:
         if arg in ('-d', '--dataset'):
@@ -103,9 +106,11 @@ def _read_params():
             edge_addition_prob = float(value)
         elif arg in ('-m', '--method'):
             algorithm = value.lower()
+        elif arg in ('--calc_ari_nmi'):
+            calc_ari_nmi = True
         elif arg in ('--debug'):
             debug_mode = True
-    return (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, debug_mode)
+    return (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi, debug_mode)
 
 
 def _map_cluster(cluster, id2vertex):
@@ -355,7 +360,7 @@ def _vol(ball_center, ball, valid_vertices, graph, num_vertices, x, r):
                         if r < xuv:
                             raise Exception(
                                 'ERROR: radius cannot be less than the distance between the ball center and any vertex in the ball---r: %s, xuv: %s' % (
-                                r, xuv))
+                                    r, xuv))
                         vol += (r - xuv) * graph[v][w][0]
     return vol
 
@@ -418,7 +423,7 @@ def round_demaine(x, id2vertexpair, id2vertex, edges, graph, const):
                         # raise Exception('ERROR: the condition \'cut<=const*log(n+1)*vol\' is not achieved for any r<1/c---lhs: %s, rhs: %s' %(cut,const*log(n+1)*vol))
                         print(
                             'WARNING: the condition \'cut<=const*log(n+1)*vol\' is not achieved for any r<1/c---lhs: %s, rhs: %s' % (
-                            cut, const * log(n + 1) * vol))
+                                cut, const * log(n + 1) * vol))
                     break
                 """
                 #######################
@@ -691,7 +696,8 @@ def get_ari_nmi_score(dataset_file, clustering, id2vertex):
 
 if __name__ == '__main__':
     # read parameters
-    (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, debug_mode) = _read_params()
+    (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi,
+     debug_mode) = _read_params()
 
     # load dataset
     print(separator)
@@ -711,14 +717,14 @@ if __name__ == '__main__':
     print('#vertex triples: %d' % (vertex_triples))
     if random_edgeweight_generation:
         print('Edge weights randomly generated from [%s,%s]' % (
-        random_edgeweight_generation[0], random_edgeweight_generation[1]))
+            random_edgeweight_generation[0], random_edgeweight_generation[1]))
         if edge_addition_prob > 0:
             print('Edge-addition probability: %s' % (edge_addition_prob))
     all_edgeweights_sum = _all_edgeweights_sum(graph)
     max_edgeweight_gap = _max_edgeweight_gap(graph)
     print('Global condition (without tot_min): %s >= %s ?' % (all_edgeweights_sum / vertex_pairs, max_edgeweight_gap))
     print('Global condition (including tot_min): %s >= %s ?' % (
-    (all_edgeweights_sum + tot_min) / vertex_pairs, max_edgeweight_gap))
+        (all_edgeweights_sum + tot_min) / vertex_pairs, max_edgeweight_gap))
     print('Solver: %s' % solver)
 
     # baseline CC costs
@@ -726,9 +732,9 @@ if __name__ == '__main__':
     singlecluster_cost = _CC_cost([set(id2vertex.keys())], graph) + tot_min
     allsingletons_cost = _CC_cost([{u} for u in id2vertex.keys()], graph) + tot_min
     print('CC cost of \'whole graph in one cluster\' solution: %s (tot_min: %s, cost-tot_min: %s)' % (
-    singlecluster_cost, tot_min, singlecluster_cost - tot_min))
+        singlecluster_cost, tot_min, singlecluster_cost - tot_min))
     print('CC cost of \'all singletons\' solution: %s (tot_min: %s, cost-tot_min: %s)' % (
-    allsingletons_cost, tot_min, allsingletons_cost - tot_min))
+        allsingletons_cost, tot_min, allsingletons_cost - tot_min))
 
     # run KwikCluster algorithm (to have some baseline results)
     print(separator)
@@ -743,7 +749,7 @@ if __name__ == '__main__':
     print('KwikCluster algorithm successfully executed in %d ms' % (runtime))
     kc_cost = _CC_cost(kc_clustering, graph) + tot_min
     print('CC cost of KwikCluster\'s output clustering: %s (tot_min: %s, cost-tot_min: %s)' % (
-    kc_cost, tot_min, kc_cost - tot_min))
+        kc_cost, tot_min, kc_cost - tot_min))
     print('KwikCluster\'s output clustering:')
     c = 1
     for cluster in kc_clustering:
@@ -751,8 +757,9 @@ if __name__ == '__main__':
         print('Cluster ' + str(c) + ': ' + str(sorted(mapped_cluster)))
         c += 1
 
-    # Compute ARI and NMI scores of the predicted clustering w.r.t. the gold labels
-    get_ari_nmi_score(dataset_file, kc_clustering, id2vertex)
+    if calc_ari_nmi:
+        # Compute ARI and NMI scores of the predicted clustering w.r.t. the gold labels
+        get_ari_nmi_score(dataset_file, kc_clustering, id2vertex)
 
     if algorithm == 'charikar' or algorithm == 'demaine':
         # build linear program
@@ -777,7 +784,7 @@ if __name__ == '__main__':
         if solver == 'scipy':
             print('#variables: %d (must be equal to #vertex pairs, i.e., equal to %d)' % (len(c), vertex_pairs))
             print('#inequality constraints: %d (must be equal to 3 * #vertex triples, i.e., equal to %d)' % (
-            len(A), 3 * vertex_triples))
+                len(A), 3 * vertex_triples))
             print('#non-zero entries in cost vector: %d (must be <= #edges, i.e., <= %d)' % (c_nonzero, m))
 
         # solving linear program
@@ -802,7 +809,7 @@ if __name__ == '__main__':
         print('Cost of the LP solution: %s (tot_min: %s, cost-tot_min: %s)' % (lp_cost, tot_min, lp_cost - tot_min))
         all_negativeedgeweight_sum = _all_negativeedgeweight_sum(graph)
         print('Cost of the LP solution (according to %s): %s (tot_min: %s, cost-tot_min: %s)' % (
-        method, obj_value + all_negativeedgeweight_sum + tot_min, tot_min, obj_value + all_negativeedgeweight_sum))
+            method, obj_value + all_negativeedgeweight_sum + tot_min, tot_min, obj_value + all_negativeedgeweight_sum))
         """
         #######################
         #######################
@@ -843,7 +850,7 @@ if __name__ == '__main__':
         print('LP-rounding successfully performed in %d ms' % (runtime))
         cc_cost = _CC_cost(clustering, graph) + tot_min
         print('CC cost of O(log n)-approximation algorithm\'s output clustering: %s (tot_min: %s, cost-tot_min: %s)' % (
-        cc_cost, tot_min, cc_cost - tot_min))
+            cc_cost, tot_min, cc_cost - tot_min))
         print('O(log n)-approximation algorithm\'s output clustering:')
         c = 1
         for cluster in clustering:
