@@ -16,7 +16,7 @@ def _running_time_ms(start):
     return int(round((time.time() - start) * 1000))
 
 
-def _load(dataset_path, random_edgeweight_generation, edge_addition_prob, debug_mode):
+def _load(dataset_path, random_edgeweight_generation, edge_addition_prob, debug_mode, n_debug):
     with open(dataset_path) as f:
         tot_min = 0
         id2vertex = {}
@@ -26,7 +26,7 @@ def _load(dataset_path, random_edgeweight_generation, edge_addition_prob, debug_
         vertex_id = 0
         for i_line, line in enumerate(f.readlines()[1:]):
             if debug_mode:
-                if i_line == 500:
+                if i_line == n_debug:
                     break
             tokens = line.split()
             u = int(tokens[0])
@@ -88,6 +88,7 @@ def _read_params():
     calc_ari_nmi = False
     skip_cluster_output = False
     debug_mode = False
+    n_debug = 500
     short_params = 'd:r:s:a:m:'
     long_params = ['dataset=', 'random=', 'solver=', 'addedges=', 'method=', 'debug', 'calc_ari_nmi',
                    'skip_cluster_output']
@@ -97,7 +98,7 @@ def _read_params():
         print(
             'ologncc.py -d <dataset_file> [-r <rnd_edge_weight_LB,rnd_edge_weight_UB>]' +
             ' [-a <edge_addition_probability>] [-s <solver>] [-m <algorithm>]' +
-            ' [--calc_ari_nmi] [--skip_cluster_output] [--debug]')
+            ' [--calc_ari_nmi] [--skip_cluster_output] [--debug] [--n_debug <debug_instances>]')
         sys.exit(2)
     for arg, value in arguments:
         if arg in ('-d', '--dataset'):
@@ -116,8 +117,10 @@ def _read_params():
             skip_cluster_output = True
         elif arg in ('--debug'):
             debug_mode = True
+        elif arg in ('--n_debug'):
+            n_debug = int(value)
     return (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi,
-            skip_cluster_output, debug_mode)
+            skip_cluster_output, debug_mode, n_debug)
 
 
 def _map_cluster(cluster, id2vertex):
@@ -711,14 +714,14 @@ def get_ari_nmi_score(dataset_file, clustering, id2vertex):
 if __name__ == '__main__':
     # read parameters
     (dataset_file, random_edgeweight_generation, edge_addition_prob, solver, algorithm, calc_ari_nmi,
-     skip_cluster_output, debug_mode) = _read_params()
+     skip_cluster_output, debug_mode, n_debug) = _read_params()
 
     # load dataset
     print(separator)
     print('Loading dataset \'%s\'...' % dataset_file)
     start = time.time()
     (id2vertex, vertex2id, edges, graph, tot_min) = _load(dataset_file, random_edgeweight_generation,
-                                                          edge_addition_prob, debug_mode)
+                                                          edge_addition_prob, debug_mode, n_debug)
     runtime = _running_time_ms(start)
     n = len(id2vertex)
     m = len(edges)
