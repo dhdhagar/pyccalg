@@ -6,6 +6,8 @@ from scipy.optimize import linprog
 import numpy as np
 from sklearn.metrics.cluster import adjusted_rand_score, normalized_mutual_info_score
 
+from tqdm import tqdm
+
 separator = '---------------'
 eps = 0.0000000001
 
@@ -140,7 +142,7 @@ def _vertex_pair_ids(n):
     return id2vertexpair
 
 
-def _linear_program_scipy(num_vertices, edges, graph):
+def _linear_program_scipy(num_vertices, edges, graph, debug=False):
     vertex_pairs = int(num_vertices * (num_vertices - 1) / 2)
     A = []
     """
@@ -171,7 +173,8 @@ def _linear_program_scipy(num_vertices, edges, graph):
                 a[ik] = -1
                 A.append(a)
     """
-    for i in range(num_vertices - 1):
+    A_it = range(num_vertices - 1) if not debug else tqdm(range(num_vertices - 1), desc="LP: Building A")
+    for i in A_it:
         for j in range(i + 1, num_vertices):
             ij = _vertex_pair_id(i, j, num_vertices)
             for k in range(num_vertices):
@@ -187,7 +190,9 @@ def _linear_program_scipy(num_vertices, edges, graph):
                     A.append(a)
     b = [0] * len(A)
     c = [0] * vertex_pairs
-    for (u, v) in edges:
+
+    c_it = edges if not debug else tqdm(edges, desc="LP: Building c")
+    for (u, v) in c_it:
         uv = _vertex_pair_id(u, v, num_vertices)
         (wp, wn) = graph[u][v]
         if wp != wn:
@@ -785,7 +790,7 @@ if __name__ == '__main__':
         if solver == 'pulp':
             model = _linear_program_pulp(n, edges, graph)
         elif solver == 'scipy':
-            (A, b, c) = _linear_program_scipy(n, edges, graph)
+            (A, b, c) = _linear_program_scipy(n, edges, graph, debug_mode)
             c_nonzero = len([x for x in c if x != 0])
         else:
             raise Exception('Solver \'%s\' not supported' % (solver))
