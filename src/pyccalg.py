@@ -1,7 +1,11 @@
-import os, sys, getopt, time, random
+import os, sys, getopt, time, random, json
 from math import log
 import pulp as plp
 from scipy.optimize import linprog
+
+import numpy as np
+from sklearn.metrics.cluster import adjusted_rand_score, normalized_mutual_info_score
+
 
 separator = '---------------'
 eps = 0.0000000001
@@ -618,6 +622,31 @@ def _check_clustering(clustering,num_vertices):
 
 	return True
 
+def get_ari_nmi_score(dataset_file, clustering, id2vertex):
+	labels_path = os.path.join(os.path.dirname(dataset_file), "men_labels.json")
+	gold_labels = []
+	with open(labels_path) as fh:
+		gold_labels = json.load(fh)
+
+	predicted_labels = [i for i in range(len(id2vertex))]
+	cid = 0
+	n_predicted = 0
+	for cluster in clustering:
+		for u in cluster:
+			predicted_labels[id2vertex[u]] = cid
+			n_predicted += 1
+		cid += 1
+	assert n_predicted == len(id2vertex) == len(gold_labels)
+
+	gold_labels = np.array(gold_labels)
+	predicted_labels = np.array(predicted_labels)
+	ari = adjusted_rand_score(gold_labels, predicted_labels)
+	nmi = normalized_mutual_info_score(gold_labels, predicted_labels)
+	avg_result = (ari + nmi) / 2
+	print(f"Clustering result: ARI={ari}, NMI={nmi}, average={avg_result}")
+
+	return ari, nmi, avg_result
+
 
 if __name__ == '__main__':
 	#read parameters
@@ -661,6 +690,7 @@ if __name__ == '__main__':
 	start = time.time()
 	kc_clustering = kwikcluster(id2vertex,graph)
 	runtime = _running_time_ms(start)
+	# Check if each vertex has been assigned to exactly one cluster
 	check_clustering = _check_clustering(kc_clustering,n)
 	if not check_clustering:
 		raise Exception('ERROR: malformed clustering')
@@ -673,6 +703,9 @@ if __name__ == '__main__':
 		mapped_cluster = _map_cluster(cluster,id2vertex)
 		print('Cluster ' + str(c) + ': ' + str(sorted(mapped_cluster)))
 		c += 1
+
+	# Compute ARI and NMI scores of the predicted clustering w.r.t. the gold labels
+	get_ari_nmi_score(dataset_file, kc_clustering, id2vertex)
 
 	if algorithm == 'charikar' or algorithm == 'demaine':
 		#build linear program
