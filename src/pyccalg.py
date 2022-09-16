@@ -675,19 +675,23 @@ def get_ari_nmi_score(dataset_file, clustering, id2vertex):
         gold_labels = json.load(fh)
 
     predicted_labels = [i for i in range(len(id2vertex))]
+    # Define a new gold labels list since loaded `gold_labels` might represent a superset of the vertices predicted
+    aligned_gold_labels = [0 for i in range(len(id2vertex))]
     cid = 0
     n_predicted = 0
     for cluster in clustering:
         for u in cluster:
-            predicted_labels[id2vertex[u]] = cid
+            # predicted_labels[id2vertex[u]] = cid
+            predicted_labels[u] = cid
+            aligned_gold_labels[u] = gold_labels[id2vertex[u]]
             n_predicted += 1
         cid += 1
-    assert n_predicted == len(id2vertex) == len(gold_labels)
+    assert n_predicted == len(id2vertex)
 
-    gold_labels = np.array(gold_labels)
+    aligned_gold_labels = np.array(aligned_gold_labels)
     predicted_labels = np.array(predicted_labels)
-    ari = adjusted_rand_score(gold_labels, predicted_labels)
-    nmi = normalized_mutual_info_score(gold_labels, predicted_labels)
+    ari = adjusted_rand_score(aligned_gold_labels, predicted_labels)
+    nmi = normalized_mutual_info_score(aligned_gold_labels, predicted_labels)
     avg_result = (ari + nmi) / 2
     print(f"Clustering result: ARI={ari}, NMI={nmi}, average={avg_result}")
 
