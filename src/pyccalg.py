@@ -145,7 +145,7 @@ def _vertex_pair_ids(n):
     return id2vertexpair
 
 
-def _linear_program_scipy(num_vertices, edges, graph, debug=False):
+def _linear_program_scipy(num_vertices, edges, graph):
     vertex_pairs = int(num_vertices * (num_vertices - 1) / 2)
     A = []
     """
@@ -176,8 +176,7 @@ def _linear_program_scipy(num_vertices, edges, graph, debug=False):
                 a[ik] = -1
                 A.append(a)
     """
-    A_it = range(num_vertices - 1) if not debug else tqdm(range(num_vertices - 1), desc="LP: Building A")
-    for i in A_it:
+    for i in tqdm(range(num_vertices - 1), desc="Building LP"):
         for j in range(i + 1, num_vertices):
             ij = _vertex_pair_id(i, j, num_vertices)
             for k in range(num_vertices):
@@ -194,8 +193,7 @@ def _linear_program_scipy(num_vertices, edges, graph, debug=False):
     b = [0] * len(A)
     c = [0] * vertex_pairs
 
-    c_it = edges if not debug else tqdm(edges, desc="LP: Building c")
-    for (u, v) in c_it:
+    for (u, v) in edges:
         uv = _vertex_pair_id(u, v, num_vertices)
         (wp, wn) = graph[u][v]
         if wp != wn:
@@ -254,7 +252,7 @@ def _linear_program_pulp(num_vertices, edges, graph):
                     constraints[c_count] = opt_model.addConstraint(plp.LpConstraint(e=expr,sense=plp.LpConstraintLE,rhs=0,name='constraint_{0}'.format(c_count)))
                     c_count += 1
     """
-    for i in range(num_vertices - 1):
+    for i in tqdm(range(num_vertices - 1), desc="Building LP"):
         for j in range(i + 1, num_vertices):
             ij = _vertex_pair_id(i, j, num_vertices)
             for k in range(num_vertices):
