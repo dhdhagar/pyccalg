@@ -572,6 +572,7 @@ def _CC_revenue(clustering, graph):
                 (wp, wn) = graph[u][v]
                 if vertex2cluster[u] == vertex2cluster[v]:
                     cost += wp
+                    cost -= wn
     return cost
 
 
