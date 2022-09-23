@@ -558,6 +558,22 @@ def _CC_cost(clustering, graph):
                     cost += wp
     return cost
 
+def _CC_revenue(clustering, graph):
+    cost = 0
+    vertex2cluster = {}
+    cid = 0
+    for cluster in clustering:
+        for u in cluster:
+            vertex2cluster[u] = cid
+        cid += 1
+    for u in graph.keys():
+        for v in graph[u]:
+            if u < v:
+                (wp, wn) = graph[u][v]
+                if vertex2cluster[u] == vertex2cluster[v]:
+                    cost += wp
+    return cost
+
 
 def _lp_solution_cost(lp_var_assignment, graph, num_vertices):
     cost = 0
@@ -745,11 +761,18 @@ if __name__ == '__main__':
     # baseline CC costs
     print(separator)
     singlecluster_cost = _CC_cost([set(id2vertex.keys())], graph) + tot_min
+    singlecluster_revenue = _CC_revenue([set(id2vertex.keys())], graph) + tot_min
     allsingletons_cost = _CC_cost([{u} for u in id2vertex.keys()], graph) + tot_min
+    allsingletons_revenue = _CC_revenue([{u} for u in id2vertex.keys()], graph) + tot_min
+
     print('CC cost of \'whole graph in one cluster\' solution: %s (tot_min: %s, cost-tot_min: %s)' % (
         singlecluster_cost, tot_min, singlecluster_cost - tot_min))
+    print('CC revenue of \'whole graph in one cluster\' solution: %s (tot_min: %s, cost-tot_min: %s)' % (
+        singlecluster_revenue, tot_min, singlecluster_revenue - tot_min))
     print('CC cost of \'all singletons\' solution: %s (tot_min: %s, cost-tot_min: %s)' % (
         allsingletons_cost, tot_min, allsingletons_cost - tot_min))
+    print('CC revenue of \'all singletons\' solution: %s (tot_min: %s, cost-tot_min: %s)' % (
+        allsingletons_revenue, tot_min, allsingletons_revenue - tot_min))
 
     # run KwikCluster algorithm (to have some baseline results)
     print(separator)
@@ -763,8 +786,11 @@ if __name__ == '__main__':
         raise Exception('ERROR: malformed clustering')
     print('KwikCluster algorithm successfully executed in %d ms' % (runtime))
     kc_cost = _CC_cost(kc_clustering, graph) + tot_min
+    kc_revenue = _CC_revenue(kc_clustering, graph) + tot_min
     print('CC cost of KwikCluster\'s output clustering: %s (tot_min: %s, cost-tot_min: %s)' % (
         kc_cost, tot_min, kc_cost - tot_min))
+    print('CC revenue of KwikCluster\'s output clustering: %s (tot_min: %s, cost-tot_min: %s)' % (
+        kc_revenue, tot_min, kc_revenue - tot_min))
     print('KwikCluster\'s output clustering:')
     c = 1
     for cluster in kc_clustering:
