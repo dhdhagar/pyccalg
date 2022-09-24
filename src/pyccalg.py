@@ -698,6 +698,10 @@ def _check_clustering(clustering, num_vertices):
 
 def get_ari_nmi_score(dataset_file, clustering, id2vertex):
     labels_path = os.path.join(os.path.dirname(dataset_file), "men_labels.json")
+    if not os.path.exists(labels_path):
+        labels_path = os.path.join(os.path.dirname(dataset_file), "correlation_data_men_labels.json")
+        if not os.path.exists(labels_path):
+            raise ValueError("Gold labels not found")
     gold_labels = []
     with open(labels_path) as fh:
         gold_labels = json.load(fh)
